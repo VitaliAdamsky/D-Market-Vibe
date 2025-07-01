@@ -1,0 +1,12 @@
+{
+  "importMap": "./import-map.json",
+  "tasks": {
+    "test": "deno run --watch --allow-net --allow-env --allow-read --allow-write --unstable-kv --allow-sys --unstable-cron test.ts",
+    "dev": "deno run --watch --allow-net --allow-env --allow-read --allow-write --unstable-kv --allow-sys --unstable-cron server.ts",
+    "deploy": "deployctl deploy --project d-market-vibe --entrypoint server.ts",
+    "delete": "deployctl projects delete d-market-vibe"
+  },
+  "compilerOptions": {
+    "lib": ["dom", "deno.ns"]
+  }
+}

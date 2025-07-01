@@ -1,0 +1,19 @@
+{
+  "imports": {
+    "hono": "https://deno.land/x/hono@v3.11.5/mod.ts",
+    "hono/": "https://deno.land/x/hono@v3.11.5/",
+    "hono/cors": "https://deno.land/x/hono@v3.11.5/middleware.ts",
+    "hono/factory": "https://esm.sh/hono@3.11.5/factory",
+    "#routes/": "./routes/",
+    "#models/": "./models/",
+    "#shared/": "./shared/",
+    "#oi/": "./market-data/oi/",
+    "#kline/": "./market-data/kline/",
+    "#fr/": "./market-data/fr/",
+    "#coins/": "./coins/",
+    "#global/": "./global/",
+    "#app/": "./app/",
+    "dotenv/": "https://deno.land/std@0.204.0/dotenv/",
+    "doppler-sdk": "npm:@dopplerhq/node-sdk"
+  }
+}
