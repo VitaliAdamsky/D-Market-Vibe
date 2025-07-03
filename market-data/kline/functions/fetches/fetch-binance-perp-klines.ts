@@ -80,10 +80,11 @@ export async function fetchBinancePerpKlines(
           const volumeDelta = takerBuyQuote - sellerQuoteVolume;
 
           return {
-            highPrice: parseFloat(entry[2]),
-            lowPrice: parseFloat(entry[3]),
             openTime: entry[0],
             closeTime: entry[6],
+            highPrice: parseFloat(entry[2]),
+            lowPrice: parseFloat(entry[3]),
+            openPrice: parseFloat(entry[1]),
             closePrice: parseFloat(entry[4]),
             quoteVolume: totalQuoteVolume,
             buyerRatio: buyerRatio,

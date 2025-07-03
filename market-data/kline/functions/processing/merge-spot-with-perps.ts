@@ -91,6 +91,7 @@ export function mergeSpotWithPerps(
         closeTime: entry.closeTime,
         highPrice: entry.highPrice,
         lowPrice: entry.lowPrice,
+        openPrice: entry.openPrice,
         closePrice: entry.closePrice,
         quoteVolume: entry.quoteVolume,
         buyerRatio: entry.buyerRatio,

@@ -1,5 +1,6 @@
 {
   "imports": {
+    "redis": "https://deno.land/x/upstash_redis@v1.22.0/mod.ts",
     "hono": "https://deno.land/x/hono@v3.11.5/mod.ts",
     "hono/": "https://deno.land/x/hono@v3.11.5/",
     "hono/cors": "https://deno.land/x/hono@v3.11.5/middleware.ts",

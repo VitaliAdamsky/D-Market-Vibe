@@ -3,6 +3,7 @@ export interface KlineDataItem {
   closeTime: number;
   highPrice: number;
   lowPrice: number;
+  openPrice: number;
   closePrice: number;
   quoteVolume: number;
   buyerRatio?: number;
@@ -18,10 +19,15 @@ export interface KlineDataItem {
   normalizedBuyerRatio?: number;
   normalizedQuoteVolume?: number;
   normalizedVolumeDelta?: number;
+
+  rollingVwap?: number;
+  rollingVwapUBand?: number;
+  rollingVwapLBand?: number;
+
   colors?: {
     closePrice: string;
     closePriceChange: string;
-    buyerRatio: string;
+    buyerRatio?: string;
     buyerRatioChange?: string;
     quoteVolume: string;
     quoteVolumeChange: string;

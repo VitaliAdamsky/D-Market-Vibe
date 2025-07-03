@@ -1,4 +1,6 @@
 export interface AppConfig {
+  redisUrl: string;
+  redisToken: string;
   tgUser: string;
   tgTech: string;
   tgBusiness: string;

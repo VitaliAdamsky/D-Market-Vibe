@@ -6,7 +6,8 @@ import type { MiddlewareHandler } from "hono";
 
 import { ServantsConfigOperator } from "#global/servant-config.ts";
 import coinsRouter from "#coins/routes/coins.route.ts";
-import colorsRouter from "#colors/controllers/colors.controller.ts";
+import colorsRouter from "#colors/routes/colors.route.ts";
+import klineRouter from "#kline/routes/kline.route.ts";
 
 export function initializeApp(): Hono {
   const config = ServantsConfigOperator.getConfig();
@@ -26,6 +27,7 @@ export function initializeApp(): Hono {
   // Роуты
   app.route("/api/coins", coinsRouter);
   app.route("/api/colors", colorsRouter);
+  app.route("/api/kline", klineRouter);
 
   app.get("/api", (c) => c.text("🔥 Welcome to the Market Vibe API (Hono)!"));
 

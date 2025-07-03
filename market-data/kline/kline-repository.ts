@@ -1,201 +1,133 @@
-// kline-repository.ts
-
-import { KlineData } from "#kline/models/kline.ts";
 import { TF } from "#models/timeframes.ts";
 import { MarketData } from "#models/market-data.ts";
+import { KlineStatsData } from "#kline/models/market-stats.ts";
 import {
   compressToGzipBase64Async,
   decompressFromGzipBase64Async,
 } from "#shared/utils/compression-utils.ts";
-import {
-  TIMEFRAME_CONFIG,
-  VALID_TIMEFRAMES,
-} from "#kline/config/timeframe.config.ts";
+import { fetchKlineData } from "#kline/functions/fetches/fetch-kline-data.ts";
+import { TIMEFRAME_CONFIG } from "#kline/config/timeframe-config.ts";
+import { Redis } from "redis";
 import { ServantsConfigOperator } from "#global/servant-config.ts";
-import { fetchKlineData } from "./functions/fetches/fetch-kline-data.ts";
+import { VwapStatsData } from "#kline/models/vwap-stats.ts";
 
-// --- Тип для поддерживаемых таймфреймов ---
-export type SupportedTF = keyof typeof TIMEFRAME_CONFIG;
+export class KlineRepo {
+  private static redis: Redis | null = null;
 
-function _fetchAllDataForTimeframe(tf: SupportedTF): Promise<KlineData[]> {
-  console.log(`⏳ Имитация получения данных для таймфрейма: ${tf}...`);
-  return Promise.resolve([
-    {
-      symbol: `MOCK-${tf}`,
-      exchanges: ["mock"],
-      imageUrl: "url",
-      category: "mock",
-      data: [],
-    },
-  ]);
-}
+  public static initializeRedis(): void {
+    if (this.redis) return;
 
-class ServantConfigCache<K, V> {
-  private cache = new Map<K, V>();
-  private stdTTL: number;
+    const url = ServantsConfigOperator.getConfig().redisUrl;
+    const token = ServantsConfigOperator.getConfig().redisToken;
 
-  constructor(options: { stdTTL: number }) {
-    this.stdTTL = options.stdTTL;
-  }
-
-  set(key: K, value: V): void {
-    this.cache.set(key, value);
-  }
-
-  get(key: K): V | undefined {
-    return this.cache.get(key);
-  }
-}
-
-class KlineDataCache {
-  public caches: Record<
-    SupportedTF,
-    ServantConfigCache<string, { data: string }>
-  >;
-
-  constructor() {
-    this.caches = Object.fromEntries(
-      Object.entries(TIMEFRAME_CONFIG).map(([tf, config]) => [
-        tf,
-        new ServantConfigCache<string, { data: string }>({
-          stdTTL: config.ttl,
-        }),
-      ])
-    ) as Record<SupportedTF, ServantConfigCache<string, { data: string }>>;
-  }
-}
-
-export class KlineRepository {
-  private static klineDataCache: KlineDataCache = new KlineDataCache();
-  private static isInitialized = false;
-
-  public static async initialize(): Promise<void> {
-    if (this.isInitialized) {
-      console.warn("⚠️ KlineRepository is already initialized.");
-      return;
-    }
-
-    console.log("🚀 Initializing KlineRepository...");
-    try {
-      const refreshPromises = VALID_TIMEFRAMES.map(({ timeframe }) =>
-        this.refreshCache(timeframe as SupportedTF)
-      );
-      await Promise.all(refreshPromises);
-      this.isInitialized = true;
-      console.log("✅ KlineRepository initialized and populated successfully.");
-    } catch (error) {
-      console.error(
-        "❌ Fatal error during KlineRepository initialization:",
-        error
-      );
-    }
-  }
-
-  public static async refreshCache(tf: SupportedTF): Promise<void> {
-    this.assertTimeframe(tf);
-    console.log(`🔄 Refreshing cache for timeframe "${tf}"...`);
-    try {
-      const freshData = await _fetchAllDataForTimeframe(tf);
-      await this.setKlineData(tf, freshData);
-    } catch (error) {
-      console.error(`❌ Failed to refresh cache for timeframe "${tf}":`, error);
-    }
-  }
-
-  private static assertTimeframe(tf: SupportedTF): void {
-    if (!TIMEFRAME_CONFIG[tf]) {
+    if (!url || !token) {
       throw new Error(
-        `❌ Unsupported timeframe "${tf}". Supported: ${Object.keys(
-          TIMEFRAME_CONFIG
-        ).join(", ")}`
+        "UPSTASH_REDIS_REST_URL or UPSTASH_REDIS_REST_TOKEN not set in environment"
       );
     }
+
+    this.redis = new Redis({ url, token });
   }
 
-  public static async setKlineData(
-    tf: SupportedTF,
-    data: MarketData[]
+  private static getMarketKey(timeframe: TF): string {
+    return `kline:${timeframe}`;
+  }
+
+  private static getStatsKey(timeframe: TF): string {
+    return `klineStats:${timeframe}`;
+  }
+
+  private static getVwapStatsKey(timeframe: TF): string {
+    return `vwapStats:${timeframe}`;
+  }
+
+  /**
+   * Сохраняет marketData, klineStatsData и vwapStatsData атомарно
+   */
+  public static async set(
+    timeframe: TF,
+    marketData: MarketData,
+    klineStatsData: KlineStatsData,
+    vwapStatsData: VwapStatsData
   ): Promise<void> {
-    this.assertTimeframe(tf);
+    if (!this.redis) this.initializeRedis();
 
-    if (!Array.isArray(data)) {
-      throw new Error("❌ KLINE CACHE: Data must be an array of KlineData.");
-    }
+    const compressedMarket = await compressToGzipBase64Async(marketData);
+    const compressedKlineStats = await compressToGzipBase64Async(
+      klineStatsData
+    );
+    const compressedVwapStats = await compressToGzipBase64Async(vwapStatsData);
 
-    try {
-      const compressedData = await compressToGzipBase64Async(data);
-      this.klineDataCache.caches[tf].set("data", { data: compressedData });
-      console.log(
-        `📦 Compressed kline data for timeframe "${tf}" and stored in cache.`
-      );
-    } catch (error) {
-      console.error(
-        `❌ Error compressing or setting kline data for timeframe "${tf}":`,
-        error
-      );
-    }
+    await this.redis!.mset({
+      [this.getMarketKey(timeframe)]: compressedMarket,
+      [this.getStatsKey(timeframe)]: compressedKlineStats,
+      [this.getVwapStatsKey(timeframe)]: compressedVwapStats,
+    });
+
+    console.log(
+      `✅ [KlineRepo] Saved marketData, klineStatsData, vwapStatsData for ${timeframe}`
+    );
   }
 
-  public static async getKlineData(
-    tf: SupportedTF
-  ): Promise<KlineData[] | null> {
-    this.assertTimeframe(tf);
-
-    if (!this.isInitialized) {
-      console.warn(
-        "⚠️ KlineRepository has not been initialized. Cache will be empty."
-      );
-      return null;
-    }
-
-    try {
-      const cacheItem = this.klineDataCache.caches[tf].get("data");
-      if (!cacheItem?.data) {
-        console.log(`🤷 No kline data found in cache for timeframe "${tf}".`);
-        return null;
-      }
-
-      const decompressedData = await decompressFromGzipBase64Async<KlineData[]>(
-        cacheItem.data
-      );
-      console.log(
-        `🛍️ Decompressed and retrieved kline data for timeframe "${tf}" from cache.`
-      );
-      return decompressedData;
-    } catch (error) {
-      console.error(
-        `❌ Error getting or decompressing kline data for timeframe "${tf}":`,
-        error
-      );
-      return null;
-    }
+  /**
+   * Получает только MarketData по таймфрейму
+   */
+  public static async getMarket(timeframe: TF): Promise<MarketData | null> {
+    if (!this.redis) this.initializeRedis();
+    const compressed = await this.redis!.get<string>(
+      this.getMarketKey(timeframe)
+    );
+    if (!compressed) return null;
+    return decompressFromGzipBase64Async<MarketData>(compressed);
   }
 
-  public static initializeKlineStore(): void {
-    for (const config of VALID_TIMEFRAMES) {
-      const { timeframe, delay: delayMs } = config;
+  /**
+   * Получает только KlineStatsData по таймфрейму
+   */
+  public static async getKlineStats(
+    timeframe: TF
+  ): Promise<KlineStatsData | null> {
+    if (!this.redis) this.initializeRedis();
+    const compressed = await this.redis!.get<string>(
+      this.getStatsKey(timeframe)
+    );
+    if (!compressed) return null;
+    return decompressFromGzipBase64Async<KlineStatsData>(compressed);
+  }
+
+  /**
+   * Получает только VwapStatsData по таймфрейму
+   */
+  public static async getVwapStats(
+    timeframe: TF
+  ): Promise<VwapStatsData | null> {
+    if (!this.redis) this.initializeRedis();
+    const compressed = await this.redis!.get<string>(
+      this.getVwapStatsKey(timeframe)
+    );
+    if (!compressed) return null;
+    return decompressFromGzipBase64Async<VwapStatsData>(compressed);
+  }
+
+  /**
+   * Загружает и сохраняет все таймфреймы из конфига
+   */
+  public static async initialize(limit: number): Promise<void> {
+    this.initializeRedis();
+
+    for (const tfKey of Object.keys(TIMEFRAME_CONFIG) as TF[]) {
+      console.log(`✨ [KlineRepo] Fetching data for timeframe: ${tfKey}`);
+
+      const { marketData, klineStatsData, vwapStatsData } =
+        await fetchKlineData(tfKey, limit);
+
+      await this.set(tfKey, marketData, klineStatsData, vwapStatsData);
 
       console.log(
-        `⏱ Kline Store [${timeframe}] will init after ${delayMs / 60000} min`
+        `👉 [KlineRepo] Saved ${tfKey} Market, KlineStats, VwapStats`
       );
-
-      setTimeout(async () => {
-        try {
-          const limit = ServantsConfigOperator.getConfig().limitKline;
-          const result = await fetchKlineData(timeframe as TF, limit);
-          await this.setKlineData(timeframe as SupportedTF, result);
-
-          console.log(
-            `💛 Kline [${timeframe}] Cache initialized | Data size: ${result.data.length}`
-          );
-        } catch (err) {
-          console.error(
-            `❌ Kline [${timeframe}] failed to initialize cache:`,
-            err instanceof Error ? err.message : err
-          );
-          if (err instanceof Error && err.stack) console.error(err.stack);
-        }
-      }, delayMs);
     }
+
+    console.log("🈯️ [KlineRepo] Initialization completed");
   }
 }

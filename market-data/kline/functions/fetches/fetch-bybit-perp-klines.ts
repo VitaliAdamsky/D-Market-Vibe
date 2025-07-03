@@ -3,7 +3,7 @@ import { Coin } from "#models/coin.ts";
 import { TF } from "#models/timeframes.ts";
 import { delay } from "#shared/utils/delay/delay.ts";
 import { getPLimit } from "#shared/utils/p-limit.ts";
-import { FetchResult } from "#kline/models/fetch-results.ts";
+import { FetchResult } from "#kline/models/perp-fetch.ts";
 import { calculateCloseTime } from "#shared/calculations/calculate-close-time.ts";
 import { getBybitKlineInterval } from "#shared/intervals/get-bybit-kline-interval.ts";
 import { getIntervalDurationMs } from "#shared/utils/get-interval-duration-ms.ts";
@@ -77,6 +77,7 @@ export async function fetchBybitPerpKlines(
           openTime: Number(entry[0]),
           closeTime: calculateCloseTime(Number(entry[0]), intervalMs),
           highPrice: Number(entry[2]),
+          openPrice: Number(entry[1]),
           lowPrice: Number(entry[3]),
           closePrice: Number(entry[4]),
           // В Bybit API 7-й элемент (индекс 6) - это оборот в котируемой валюте (turnover), что эквивалентно quoteVolume

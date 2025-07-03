@@ -3,6 +3,7 @@ import { initializeApp } from "#app/initialize-app.ts";
 import { initializeConfig } from "#app/initialize-config.ts";
 import { initializeCoinsRepo } from "#app/initialize-coins-repo.ts";
 import { initializeColorsRepo } from "#app/initialize-colors.ts";
+import { initializeKlineStore } from "#app/initialize-kline.ts";
 
 const PORT = Number(Deno.env.get("PORT") ?? 3000);
 
@@ -10,6 +11,7 @@ const PORT = Number(Deno.env.get("PORT") ?? 3000);
 await initializeConfig();
 await initializeCoinsRepo();
 await initializeColorsRepo();
+await initializeKlineStore();
 
 // Инициализация приложения
 const app = initializeApp();

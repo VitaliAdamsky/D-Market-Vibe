@@ -1,12 +1,24 @@
 {
   "importMap": "./import-map.json",
   "tasks": {
-    "test": "deno run --watch --allow-net --allow-env --allow-read --allow-write --unstable-kv --allow-sys --unstable-cron test.ts",
-    "dev": "deno run --watch --allow-net --allow-env --allow-read --allow-write --unstable-kv --allow-sys --unstable-cron server.ts",
+    "test": "deno run --watch --allow-net --allow-env --allow-read --allow-write --unstable-kv --allow-sys --unstable-cron --allow-import test.ts",
+    "dev": "deno run --watch --allow-net --allow-env --allow-read --allow-write --unstable-kv --allow-sys --unstable-cron --allow-import server.ts",
     "deploy": "deployctl deploy --project d-market-vibe --entrypoint server.ts",
     "delete": "deployctl projects delete d-market-vibe"
   },
   "compilerOptions": {
-    "lib": ["dom", "deno.ns"]
+    "lib": [
+      "dom",
+      "deno.ns",
+      "deno.unstable"
+    ]
+  },
+  "deploy": {
+    "project": "64b665d1-7007-48c0-a4ff-2526b3cdbee6",
+    "exclude": [
+      "**/node_modules"
+    ],
+    "include": [],
+    "entrypoint": "server.ts"
   }
 }
