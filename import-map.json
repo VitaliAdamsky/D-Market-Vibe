@@ -13,6 +13,7 @@
     "#coins/": "./coins/",
     "#global/": "./global/",
     "#app/": "./app/",
+    "#colors/": "./general/colors/",
     "dotenv/": "https://deno.land/std@0.204.0/dotenv/",
     "doppler-sdk": "npm:@dopplerhq/node-sdk"
   }

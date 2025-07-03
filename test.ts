@@ -1,11 +1,11 @@
-import { CoinRepo } from "#coins/coins-repo.ts";
+import { CoinsRepo } from "#coins/coins-repo.ts";
 import { ServantsConfigOperator } from "#global/servant-config.ts";
 
 await ServantsConfigOperator.initialize();
 const config = ServantsConfigOperator.getConfig();
-await CoinRepo.initialize();
+await CoinsRepo.initialize();
 
-const cachedCoins = await CoinRepo.getCoinsFromCache();
+const cachedCoins = await CoinsRepo.getCoinsFromCache();
 console.log(
   "Полученные монеты из кэша (Binance Perps, первые 3):",
   cachedCoins.binancePerps?.slice(0, 3)

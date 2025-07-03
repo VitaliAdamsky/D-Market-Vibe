@@ -1,10 +1,13 @@
-const {
-  getServantConfig,
-} = require("@global/servants/servant-config/service.js");
+import { Coin } from "#models/coin.ts";
+import { CoinType } from "#models/coin-type.ts";
+import { ServantsConfigOperator } from "#global/servant-config.ts";
 
-async function addFailedCoinsToCache(exchange, coinType, failedCoins) {
-  const config = getServantConfig();
-
+export async function addFailedCoinsToCache(
+  exchange = "Binance",
+  coinType: CoinType,
+  failedCoins: Coin[]
+) {
+  const config = ServantsConfigOperator.getConfig();
   // Build query string with all three params
   const query = new URLSearchParams({
     exchange,
@@ -35,5 +38,3 @@ async function addFailedCoinsToCache(exchange, coinType, failedCoins) {
     throw error;
   }
 }
-
-module.exports = { addFailedCoinsToCache };

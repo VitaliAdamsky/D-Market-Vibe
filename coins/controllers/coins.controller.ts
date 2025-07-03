@@ -2,11 +2,11 @@
 
 // Импортируем Context напрямую из основного пакета Hono для обеспечения совместимости типов.
 import { Context } from "hono"; // <-- ИСПРАВЛЕНО: Изменено с "hono/context" на "hono"
-import { CoinRepo } from "#coins/coins-repo.ts";
+import { CoinsRepo } from "#coins/coins-repo.ts";
 
 /**
  * Hono-обработчик для обновления кэша монет.
- * Этот обработчик вызывает метод инициализации CoinRepo, который, в свою очередь,
+ * Этот обработчик вызывает метод инициализации CoinsRepo, который, в свою очередь,
  * получает данные из API, сжимает их и кэширует.
  * @param c - Объект контекста Hono.
  * @returns {Promise<Response>} - Ответ с сообщением об успехе или ошибке.
@@ -15,9 +15,9 @@ export const refreshCoinsCacheHandler = async (
   c: Context
 ): Promise<Response> => {
   try {
-    // Выполняем основную логику обновления кэша через CoinRepo.
-    // CoinRepo.initialize() теперь включает логику получения, сжатия и кэширования.
-    await CoinRepo.initialize();
+    // Выполняем основную логику обновления кэша через CoinsRepo.
+    // CoinsRepo.initialize() теперь включает логику получения, сжатия и кэширования.
+    await CoinsRepo.initialize();
 
     // В Hono мы возвращаем ответ из обработчика.
     // c.json() - это удобный метод для отправки JSON-ответа.
@@ -42,16 +42,16 @@ export const refreshCoinsCacheHandler = async (
 
 /**
  * Hono-обработчик для получения данных о монетах из кэша.
- * Этот обработчик использует CoinRepo для извлечения распакованных данных
+ * Этот обработчик использует CoinsRepo для извлечения распакованных данных
  * о монетах из кэша и возвращает их в виде JSON-ответа.
  * @param c - Объект контекста Hono.
  * @returns {Promise<Response>} - Ответ с данными о монетах или сообщением об ошибке.
  */
 export const getCoinsHandler = async (c: Context): Promise<Response> => {
   try {
-    // Получаем данные о монетах из кэша с помощью CoinRepo.
-    // CoinRepo.getCoinsFromCache() автоматически распаковывает данные.
-    const cachedCoins = await CoinRepo.getCoinsFromCache();
+    // Получаем данные о монетах из кэша с помощью CoinsRepo.
+    // CoinsRepo.getCoinsFromCache() автоматически распаковывает данные.
+    const cachedCoins = await CoinsRepo.getCoinsFromCache();
 
     // Возвращаем полученные данные в формате JSON.
     return c.json(cachedCoins, 200);
@@ -90,7 +90,7 @@ app.get("/coins", getCoinsHandler);
 // Deno.serve(app.fetch);
 
 // Важно: Перед запуском сервера убедитесь, что ServantsConfigOperator инициализирован,
-// так как CoinRepo зависит от него для получения конфигурации API.
+// так как CoinsRepo зависит от него для получения конфигурации API.
 // Это должно быть сделано один раз при старте вашего приложения:
 // import { ServantsConfigOperator } from "#global/servant-config.ts";
 // (async () => {

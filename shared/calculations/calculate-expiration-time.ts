@@ -1,8 +1,7 @@
-const {
-  getIntervalDurationMs,
-} = require("@shared/utils/get-interval-duration-ms.js");
+import { TF } from "#models/timeframes.ts";
+import { getIntervalDurationMs } from "#shared/utils/get-interval-duration-ms.ts";
 
-function calculateExpirationTime(openTime, timeframe) {
+export function calculateExpirationTime(openTime: number, timeframe: TF) {
   if (typeof openTime !== "number" && typeof openTime !== "string") {
     return undefined;
   }
@@ -19,5 +18,3 @@ function calculateExpirationTime(openTime, timeframe) {
 
   return parsedOpenTime + 2 * intervalMs + 1;
 }
-
-module.exports = { calculateExpirationTime };

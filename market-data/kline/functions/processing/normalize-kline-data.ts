@@ -1,32 +1,38 @@
-const { getColorsCache } = require("@general/colors/cache/service.js");
+import { ColorsRepository } from "#colors/colors-repo.ts";
+import { getGradientColorForPositiveRange } from "#colors/functions/normalization/get-gradient-color-for-positive-range.ts";
+import { getColorFromChangeValue } from "#colors/functions/normalization/get-color-from-change-value.ts";
+import { KlineData, KlineDataItem } from "#kline/models/kline.ts";
+import { getGradientColorForNegativeRange } from "#colors/functions/normalization/get-gradient-color-for-negative-range.ts";
 
-const {
-  getGradientColorForPositiveRange,
-} = require("@general/colors/functions/normalization/get-gradient-color-for-positive-range.js");
+export function normalizeKlineData(marketDataArray: KlineData[]): KlineData[] {
+  const colors = ColorsRepository.getCachedColors();
 
-const {
-  getGradientColorForNegativeRange,
-} = require("@general/colors/functions/normalization/get-gradient-color-for-negative-range.js");
-
-const {
-  getColorFromChangeValue,
-} = require("@general/colors/functions/normalization/get-color-from-change-value.js");
-
-function normalizeKlineData(marketDataArray) {
-  const colors = getColorsCache();
-
-  return marketDataArray.map((coinData) => {
+  return marketDataArray.map((coinData): KlineData => {
     const data = coinData.data;
 
-    const closePrices = data.map((item) => item.closePrice ?? 0);
-    const closePriceChanges = data.map((item) => item.closePriceChange ?? 0);
-    const buyerRatios = data.map((item) => item.buyerRatio ?? 0);
-    const buyerRatioChanges = data.map((item) => item.buyerRatioChange ?? 0);
-    const quoteVolumes = data.map((item) => item.quoteVolume ?? 0);
-    const quoteVolumeChanges = data.map((item) => item.quoteVolumeChange ?? 0);
-    const perpSpotDiffs = data.map((item) => item.perpSpotDiff ?? 0);
-    const volumeDeltas = data.map((item) => item.volumeDelta ?? 0);
-    const volumeDeltaChanges = data.map((item) => item.volumeDeltaChange ?? 0);
+    const closePrices = data.map((item: KlineDataItem) => item.closePrice ?? 0);
+    const closePriceChanges = data.map(
+      (item: KlineDataItem) => item.closePriceChange ?? 0
+    );
+    const buyerRatios = data.map((item: KlineDataItem) => item.buyerRatio ?? 0);
+    const buyerRatioChanges = data.map(
+      (item: KlineDataItem) => item.buyerRatioChange ?? 0
+    );
+    const quoteVolumes = data.map(
+      (item: KlineDataItem) => item.quoteVolume ?? 0
+    );
+    const quoteVolumeChanges = data.map(
+      (item: KlineDataItem) => item.quoteVolumeChange ?? 0
+    );
+    const perpSpotDiffs = data.map(
+      (item: KlineDataItem) => item.perpSpotDiff ?? 0
+    );
+    const volumeDeltas = data.map(
+      (item: KlineDataItem) => item.volumeDelta ?? 0
+    );
+    const volumeDeltaChanges = data.map(
+      (item: KlineDataItem) => item.volumeDeltaChange ?? 0
+    );
 
     const cpMin = Math.min(...closePrices);
     const cpMax = Math.max(...closePrices);
@@ -63,13 +69,13 @@ function normalizeKlineData(marketDataArray) {
     const vdChangeMin = Math.min(...volumeDeltaChanges);
     const vdChangeMax = Math.max(...volumeDeltaChanges);
 
-    const updatedData = data.map((item) => {
+    const updatedData: KlineDataItem[] = data.map((item): KlineDataItem => {
       const closePrice = item.closePrice ?? 0;
       const normalizedCp = cpUniform ? 1 : (closePrice - cpMin) / cpRange;
       const cpColor = getGradientColorForPositiveRange(
         normalizedCp,
-        colors.closePriceMin,
-        colors.closePriceMax
+        colors?.closePriceMin || "#fff",
+        colors?.closePriceMax || "#fff"
       );
 
       const closePriceChange = item.closePriceChange ?? 0;
@@ -83,8 +89,8 @@ function normalizeKlineData(marketDataArray) {
       const normalizedBr = brUniform ? 1 : (buyerRatio - brMin) / brRange;
       const brColor = getGradientColorForPositiveRange(
         normalizedBr,
-        colors.buyerRatioMin,
-        colors.buyerRatioMax
+        colors?.buyerRatioMin || "#fff",
+        colors?.buyerRatioMax || "#fff"
       );
 
       const buyerRatioChange = item.buyerRatioChange ?? 0;
@@ -98,8 +104,8 @@ function normalizeKlineData(marketDataArray) {
       const normalizedQv = qvUniform ? 1 : (quoteVolume - qvMin) / qvRange;
       const qvColor = getGradientColorForPositiveRange(
         normalizedQv,
-        colors.quoteVolumeMin,
-        colors.quoteVolumeMax
+        colors?.quoteVolumeMin || "#fff",
+        colors?.quoteVolumeMax || "#fff"
       );
 
       const quoteVolumeChange = item.quoteVolumeChange ?? 0;
@@ -116,8 +122,8 @@ function normalizeKlineData(marketDataArray) {
       const normalizedVd = vdUniform ? 1 : (volumeDelta - vdMin) / vdRange;
       const vdColor = getGradientColorForNegativeRange(
         volumeDelta,
-        colors.volumeDeltaMin,
-        colors.volumeDeltaMax
+        colors?.volumeDeltaMin || "#fff",
+        colors?.volumeDeltaMax || "#fff"
       );
 
       const volumeDeltaChange = item.volumeDeltaChange ?? 0;
@@ -154,5 +160,3 @@ function normalizeKlineData(marketDataArray) {
     };
   });
 }
-
-module.exports = { normalizeKlineData };

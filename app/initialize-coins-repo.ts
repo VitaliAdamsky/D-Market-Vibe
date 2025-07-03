@@ -1,5 +1,5 @@
-import { CoinRepo } from "#coins/coins-repo.ts";
+import { CoinsRepo } from "#coins/coins-repo.ts";
 
 export async function initializeCoinsRepo() {
-  await CoinRepo.initialize();
+  await CoinsRepo.initialize();
 }
