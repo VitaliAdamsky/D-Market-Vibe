@@ -1,10 +1,11 @@
 export interface HmaStatsItem {
   openTime: number;
   closeTime: number;
-  aboveHma: string[];
-  belowHma: string[];
-  crossHmaUp: string[];
-  crossHmaDown: string[];
+  bullishCandle: number;
+  aboveHma: number;
+  belowHma: number;
+  crossHmaUp: number;
+  crossHmaDown: number;
 }
 
 export interface HmaStatsData {

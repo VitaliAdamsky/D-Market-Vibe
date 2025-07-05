@@ -18,6 +18,16 @@ import { calculateKlineStats } from "#shared/calculations/calculate-kline-stats.
 import { KlineStatsData } from "#kline/models/market-stats.ts";
 import { VwapStatsData } from "#kline/models/vwap-stats.ts";
 import { calculateVwapStats } from "#shared/calculations/calculate-vwap-stats.ts";
+import { PriceActionStatsData } from "#kline/models/price-action-stats.ts";
+import { calculatePriceActionStats } from "../../../../shared/calculations/calculate-price-action-stats.ts";
+import { PriceActionData } from "#kline/models/price-action.ts";
+import { calculatePriceAction } from "#shared/calculations/calculate-price-action.ts";
+import { HmaActionData } from "#kline/models/hma-action.ts";
+import { HmaStatsData } from "#kline/models/hma-stats.ts";
+import { calculateHmaStatsData } from "#shared/calculations/calculate-hma-stats.ts";
+import { calculateHmaAction } from "#shared/calculations/calculate-hma-action.ts";
+import { VwapActionData } from "#kline/models/vwap-action.ts";
+import { calculateVwapActionData } from "#shared/calculations/calculate-vwap-action.ts";
 
 /**
  * Загружает Kline данные по таймфрейму и возвращает MarketData и KlineStatsData.
@@ -29,6 +39,11 @@ export async function fetchKlineData(
   marketData: MarketData;
   klineStatsData: KlineStatsData;
   vwapStatsData: VwapStatsData;
+  vwapActionData: VwapActionData;
+  priceActionStatsData?: PriceActionStatsData;
+  priceActionData?: PriceActionData;
+  hmaStatsData?: HmaStatsData;
+  hmaActionData?: HmaActionData;
 }> {
   // 1. Загружаем список монет
   const { binancePerps, bybitPerps, binanceSpot, bybitSpot } =
@@ -79,43 +94,38 @@ export async function fetchKlineData(
     ),
   ]);
 
-  // 3. Явные типы
   const binanceKlinePerpData = binanceKlinePerpDataRaw as KlineData[];
   const bybitKlinePerpData = bybitKlinePerpDataRaw as KlineData[];
   const binanceKlineSpotData = binanceKlineSpotDataRaw as SpotKlineData[];
   const bybitKlineSpotData = bybitKlineSpotDataRaw as SpotKlineData[];
 
-  // 4. Определяем время последней свечи для расчета expiration
   const lastItem: KlineDataItem | undefined =
     binanceKlinePerpData[0]?.data?.at(-1) ??
     bybitKlinePerpData[0]?.data?.at(-1);
 
   const lastOpenTime = lastItem?.openTime ?? Date.now();
   const expirationTimeRaw = calculateExpirationTime(lastOpenTime, timeframe);
-
   const expirationTime = expirationTimeRaw ?? Date.now();
-
   const projectName = ServantsConfigOperator.getConfig().projectName;
 
-  // 5. Мержим спот и перпы
   let data = mergeSpotWithPerps(
     [...binanceKlinePerpData, ...bybitKlinePerpData],
     [...binanceKlineSpotData, ...bybitKlineSpotData]
   );
 
-  // 6. Нормализуем и считаем Rolling VWAP
   data = normalizeKlineData(data);
   data = calculateRollingVwap(data, timeframe);
 
-  // 7. Отфильтровываем пустые
   data = data.filter((coinData) => coinData.data.length > 0);
-  const emptyCoins = data
-    .filter((coinData) => coinData.data.length === 0)
-    .map((coinData) => coinData.symbol);
-  console.log("[fetchKlineData] Empty coins:", emptyCoins);
 
-  // 8. Считаем KlineStats
   const klineStatsData = calculateKlineStats(
+    data,
+    timeframe,
+    projectName,
+    expirationTime
+  );
+
+  const hmaStatsData = calculateHmaStatsData(
     data,
     timeframe,
     projectName,
@@ -129,14 +139,60 @@ export async function fetchKlineData(
     expirationTime
   );
 
-  // 9. Формируем MarketData
+  const vwapActionData = calculateVwapActionData(
+    data,
+    timeframe,
+    projectName,
+    expirationTime
+  );
+
+  let priceActionStatsData: PriceActionStatsData | undefined = undefined;
+
+  let priceActionData: PriceActionData | undefined = undefined;
+  let hmaActionData: HmaActionData | undefined = undefined;
+
+  if (timeframe === TF.h4 || timeframe === TF.h12 || timeframe === TF.D) {
+    priceActionStatsData = calculatePriceActionStats(
+      data,
+      timeframe,
+      projectName,
+      expirationTime
+    );
+
+    priceActionData = calculatePriceAction(
+      data,
+      timeframe,
+      projectName,
+      expirationTime
+    );
+
+    hmaActionData = calculateHmaAction(
+      data,
+      timeframe,
+      projectName,
+      expirationTime
+    );
+  }
+
   const marketData: MarketData = {
     projectName,
     dataType: "kline",
     timeframe,
     expirationTime,
-    data,
+    data: data.map((coin) => ({
+      ...coin, // копируем всё как есть
+      data: coin.data.slice(-50), // урезаем массив последних свечей
+    })),
   };
 
-  return { marketData, klineStatsData, vwapStatsData };
+  return {
+    marketData,
+    klineStatsData,
+    vwapStatsData,
+    priceActionStatsData,
+    priceActionData,
+    hmaStatsData,
+    hmaActionData,
+    vwapActionData,
+  };
 }

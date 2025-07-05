@@ -107,6 +107,6 @@ export function calculateKlineStats(
     projectName,
     timeframe,
     expirationTime,
-    data: statsData,
+    data: statsData.slice(-50),
   };
 }

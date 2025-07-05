@@ -1,5 +1,7 @@
 import { KlineRepo } from "#kline/kline-repository.ts";
+import { ServantsConfigOperator } from "#global/servant-config.ts";
 
 export async function initializeKlineStore() {
-  await KlineRepo.initialize(52);
+  const config = ServantsConfigOperator.getConfig();
+  await KlineRepo.initialize(config.limitKline);
 }

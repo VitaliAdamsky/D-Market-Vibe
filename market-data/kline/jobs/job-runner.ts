@@ -1,24 +1,14 @@
-const { CronJob } = require("cron");
+import { ServantsConfigOperator } from "#global/servant-config.ts";
+import { UnixToNamedTimeRu } from "#shared/utils/time-converter.ts";
 
-const {
-  getServantConfig,
-} = require("@global/servants/servant-config/service.js");
+import { KlineRepo } from "#kline/kline-repository.ts";
+import { TF } from "#models/timeframes.ts";
 
-const { TIMEFRAME_CONFIG } = require("@kline/config/timeframe.config.js");
+async function runKlineFetch(timeframe: TF) {
+  const limit = ServantsConfigOperator.getConfig().limitKline;
 
-const {
-  fetchKlineData,
-} = require("@kline/functions/fetches/fetch-kline-data.js");
-
-const { setKlineCache } = require("@kline/cache/service.js");
-
-const { UnixToNamedTimeRu } = require("@shared/utils/time-converter.js");
-
-async function runKlineFetch(timeframe) {
-  const limit = getServantConfig().limitKline;
   try {
-    const data = await fetchKlineData(timeframe, limit);
-    setKlineCache(timeframe, data);
+    await KlineRepo.fetchFreshData(timeframe, limit);
     console.log(
       `😍 [${UnixToNamedTimeRu(
         Date.now()
@@ -34,34 +24,36 @@ async function runKlineFetch(timeframe) {
   }
 }
 
-function scheduleKlineJobs() {
-  Object.keys(TIMEFRAME_CONFIG).forEach((tf) => {
-    const { cron, delay } = TIMEFRAME_CONFIG[tf];
+import { TIMEFRAME_CONFIG } from "#kline/config/timeframe-config.ts";
 
-    // Create a new CronJob
-    const job = new CronJob(
-      cron,
-      () => {
+export function scheduleKlineJobs() {
+  Object.entries(TIMEFRAME_CONFIG).forEach(
+    ([tf, { cron: cronTime, delay }]) => {
+      Deno.cron(`kline-${tf}`, cronTime, () => {
         console.log(
-          `👉 [KLINE JOB] Scheduled ${tf} job (cron: ${cron}, delay: ${delay} min)`
+          `👉 [KLINE JOB] Scheduled ${tf} job (cron: ${cronTime}, delay: ${delay} min)`
         );
 
+        const delayMs = delay * 60 * 1000;
+
         setTimeout(() => {
-          console.log(`🛠 [KLINE JOB] Running ${tf} job after ${delay} min`);
-          runKlineFetch(tf);
-        }, 3 * 1000); // Convert minutes to milliseconds
-      },
-      null, // onComplete callback
-      true, // Start the job right now
-      "UTC" // Time zone
-    );
+          console.log(
+            `${getIcon()}` + ` [KLINE JOB] Running ${tf} job after ${delay} min`
+          );
+          runKlineFetch(tf as TF);
+        }, delayMs);
+      });
 
-    console.log(`👉 [KLINE JOB] for ${tf} is set up with cron: ${cron}`);
-
-    job.start(); // Start the job
-  });
+      console.log(
+        `${getIcon()} ` +
+          ` [KLINE JOB] for ${tf} is set up with cron: ${cronTime}`
+      );
+    }
+  );
 }
 
-module.exports = {
-  scheduleKlineJobs,
-};
+function getIcon(): string {
+  const icons = ["✨", "💜", "🟢", "🔥"];
+  const randomIndex = Math.floor(Math.random() * icons.length);
+  return icons[randomIndex];
+}

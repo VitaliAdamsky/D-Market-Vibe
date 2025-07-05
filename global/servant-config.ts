@@ -117,7 +117,7 @@ export class ServantsConfigOperator {
       // Создаем объект конфигурации `AppConfig` из полученных секретов.
       // Используем оператор `|| ""` для предоставления пустых строк в случае отсутствия секрета,
       // и `JSON.parse` для массивов, а `Number()` для числовых значений.
-      console.log("secrets", secrets);
+
       const config: AppConfig = {
         redisUrl: secrets.UPSTASH_REDIS_REST_URL_I || "",
         redisToken: secrets.UPSTASH_REDIS_REST_TOKEN_I || "",
